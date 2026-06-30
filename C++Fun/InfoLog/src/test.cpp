@@ -1,52 +1,89 @@
-#include <atomic>
-#include <chrono>
-#include <future>
-#include <iostream>
-#include <thread>
-#include "InfoLog.h"
-#include "PthreadPool.h"
+#include "../include/test.h"
 
-using namespace std;
+bool test_file_write()
+{
+    bool res = true;
+    auto t1 = LOGGER::format_string(LOGGER::DEBUG_, "hello");
+    res &= write_file_operation(t1);
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
-bool test_pthread_pool_block();
-bool test_pthread_pool_discard_oldest();
-bool test_pthread_pool_abort();
-bool test_pthread_pool_caller_runs();
+    auto t2 = LOGGER::format_string(LOGGER::WARNING_, "number %d", 42);
+     res &= write_file_operation(t2);
+    return res;
+}
+
+void test_printf_format_string()
+{
+    auto t1 = LOGGER::format_string(LOGGER::DEBUG_, "hello");
+    std::cout << t1 << std::endl; 
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+
+    auto t2 = LOGGER::format_string(LOGGER::WARNING_, "number %d", 42);
+    std::cout << t2 << std::endl; 
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+
+    auto t3 = LOGGER::format_string(LOGGER::DEBUG_, "float %.2f", 3.14159);
+    std::cout << t3 << std::endl; 
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+
+    const char* name = "world";
+    auto t4 = LOGGER::format_string(LOGGER::ERROR_, "hello %s %d %.1f", name, 7, 2.5);
+    std::cout << t4 << std::endl; 
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+}
+
+void test_get_current_time()
+{
+    std::string str_tm = LOGGER::get_curren_time_ms();
+    std::cout<< str_tm << std::endl;
+}
+
+bool test_pthread_pool_and_logger()
+{
+    const unsigned int worker_count = 4;
+    const size_t queue_size = 8;
+    PthreadPool pool(worker_count, queue_size, PthreadPool::RejectPolicy::BLOCK);
+    pool.log(LOGGER::WARNING_, "number %d", 42);
+    pool.log(LOGGER::WARNING_, "number %d", 41);
+    pool.log(LOGGER::WARNING_, "number %d", 43);
+    pool.log(LOGGER::WARNING_, "number %d", 44);
+    pool.log(LOGGER::WARNING_, "number %d", 48);
+    pool.log(LOGGER::WARNING_, "number %d", 45);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+    std::lock_guard<std::mutex> lock(log_buff_mtx_);
+    for(size_t i = 0; i < log_buff_queue_.size(); i++)
+    {
+        std::cout<< log_buff_queue_.at(i)<<std::endl;
+    }   
+    return true;
+}
 
 bool test_format_string()
 {
     int failed = 0;
 
-    auto t1 = LOGGER::format_string("hello");
-    if (t1 != "hello") { std::cout << "test1 failed: " << t1 << "" << std::endl; ++failed; } 
+    auto t1 = LOGGER::format_string(LOGGER::DEBUG_, "hello");
+    if (t1 != "DEBUG: hello") { std::cout << "test1 failed: " << t1 << "" << std::endl; ++failed; } 
     else { std::cout << "test1 passed" << std::endl; }
 
-    auto t2 = LOGGER::format_string("number %d", 42);
-    if (t2 != "number 42") { std::cout << "test2 failed: " << t2 << "" << std::endl; ++failed; } 
+    auto t2 = LOGGER::format_string(LOGGER::WARNING_, "number %d", 42);
+    if (t2 != "WARNING: number 42") { std::cout << "test2 failed: " << t2 << "" << std::endl; ++failed; } 
     else { std::cout << "test2 passed" << std::endl; }
 
-    auto t3 = LOGGER::format_string("float %.2f", 3.14159);
-    if (t3 != "float 3.14") { std::cout << "test3 failed: " << t3 << "" << std::endl; ++failed; } 
+    auto t3 = LOGGER::format_string(LOGGER::DEBUG_, "float %.2f", 3.14159);
+    if (t3 != "DEBUG: float 3.14") { std::cout << "test3 failed: " << t3 << "" << std::endl; ++failed; } 
     else { std::cout << "test3 passed" << std::endl; }
 
     const char* name = "world";
-    auto t4 = LOGGER::format_string("hello %s %d %.1f", name, 7, 2.5);
-    if (t4 != "hello world 7 2.5") { std::cout << "test4 failed: " << t4 << "" << std::endl; ++failed; } 
+    auto t4 = LOGGER::format_string(LOGGER::ERROR_, "hello %s %d %.1f", name, 7, 2.5);
+    if (t4 != "ERROR: hello world 7 2.5") { std::cout << "test4 failed: " << t4 << "" << std::endl; ++failed; } 
     else { std::cout << "test4 passed" << std::endl; }
 
     if (failed == 0) { std::cout << "format_string tests passed"; return true; }
     std::cout << failed << " format_string tests failed" << std::endl;
     return false;
-}
-
-bool test_pthread_pool()
-{
-    bool ok = true;
-    ok = ok && test_pthread_pool_block();
-    ok = ok && test_pthread_pool_discard_oldest();
-    ok = ok && test_pthread_pool_abort();
-    ok = ok && test_pthread_pool_caller_runs();
-    return ok;
 }
 
 bool test_pthread_pool_block()
@@ -202,4 +239,14 @@ bool test_pthread_pool_caller_runs()
     std::cout << "pthread pool CALLER_RUNS policy test failed: expected " << tasks_to_submit
               << " completed tasks, got " << counter.load() << "" << std::endl;
     return false;
+}
+
+bool test_pthread_pool()
+{
+    bool ok = true;
+    ok = ok && test_pthread_pool_block();
+    ok = ok && test_pthread_pool_discard_oldest();
+    ok = ok && test_pthread_pool_abort();
+    ok = ok && test_pthread_pool_caller_runs();
+    return ok;
 }

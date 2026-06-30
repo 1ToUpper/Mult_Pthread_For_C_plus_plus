@@ -1,4 +1,4 @@
-#include "PthreadPool.h"
+#include "../include/PthreadPool.h"
 
 PthreadPool::PthreadPool(unsigned int size, size_t queue_size, RejectPolicy policy)
 {
