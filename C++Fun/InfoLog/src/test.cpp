@@ -1,5 +1,11 @@
 #include "../include/test.h"
 
+void test_seek_file_write()
+{
+    std::string str = seek_log_files("");
+    std::cout<< str <<std::endl;
+}
+
 bool test_file_write()
 {
     bool res = true;
@@ -58,6 +64,90 @@ bool test_pthread_pool_and_logger()
         std::cout<< log_buff_queue_.at(i)<<std::endl;
     }   
     return true;
+}
+
+// Unit tests for seek_log_files and file rotation
+bool unit_test_create_log_folder_when_missing()
+{
+    namespace fs = std::filesystem;
+    if (fs::exists(log_folder_dir)) fs::remove_all(log_folder_dir);
+    std::string name = seek_log_files("");
+    bool created = fs::exists(log_folder_dir) && name == "Info.0";
+    std::cout << "unit_test_create_log_folder_when_missing: " << (created ? "passed" : "FAILED") << std::endl;
+    return created;
+}
+
+bool unit_test_create_file_when_no_logs()
+{
+    namespace fs = std::filesystem;
+    if (fs::exists(log_folder_dir)) fs::remove_all(log_folder_dir);
+    fs::create_directory(log_folder_dir);
+    std::string name = seek_log_files("");
+    bool ok = (name == "Info.0");
+    if (ok) {
+        bool wrote = write_file_operation("HEADER\n");
+        ok = ok && wrote && fs::exists(log_folder_dir + "/Info.0");
+    }
+    std::cout << "unit_test_create_file_when_no_logs: " << (ok ? "passed" : "FAILED") << std::endl;
+    return ok;
+}
+
+bool unit_test_restart_creates_new_file()
+{
+    namespace fs = std::filesystem;
+    if (fs::exists(log_folder_dir)) fs::remove_all(log_folder_dir);
+    fs::create_directory(log_folder_dir);
+    // create an existing Info.0
+    std::ofstream out(log_folder_dir + "/Info.0", std::ios::app);
+    out << "old\n";
+    out.close();
+    reset_first_open_flag();
+    std::string name = seek_log_files("");
+    bool ok = (name == "Info.1");
+    if (!ok)
+    {
+        std::cout << "DEBUG: seek_log_files returned '" << name << "'" << std::endl;
+        namespace fs = std::filesystem;
+        std::cout << "DEBUG: files in folder:" << std::endl;
+        for (auto &e : fs::directory_iterator(log_folder_dir)) std::cout << " - " << e.path().filename().string() << std::endl;
+    }
+    if (ok) {
+        write_file_operation("HEADER: test\n");
+        std::ifstream in(log_folder_dir + "/Info.1");
+        std::string first;
+        std::getline(in, first);
+        ok = ok && (first == "HEADER: test");
+    }
+    std::cout << "unit_test_restart_creates_new_file: " << (ok ? "passed" : "FAILED") << std::endl;
+    return ok;
+}
+
+bool unit_test_rotation_on_size()
+{
+    namespace fs = std::filesystem;
+    if (fs::exists(log_folder_dir)) fs::remove_all(log_folder_dir);
+    fs::create_directory(log_folder_dir);
+    set_max_file_byte(10); // small for test
+    // create Info.0 with 8 bytes
+    {
+        std::ofstream out(log_folder_dir + "/Info.0", std::ios::trunc);
+        out << "12345678";
+    }
+    // writing 4 bytes should force rotation (8 + 4 > 10)
+    bool wrote = write_file_operation("abcd");
+    bool exists_new = fs::exists(log_folder_dir + "/Info.1");
+    std::cout << "unit_test_rotation_on_size: " << ((wrote && exists_new) ? "passed" : "FAILED") << std::endl;
+    return (wrote && exists_new);
+}
+
+bool run_all_fileoperator_unit_tests()
+{
+    bool ok = true;
+    ok &= unit_test_create_log_folder_when_missing();
+    ok &= unit_test_create_file_when_no_logs();
+    ok &= unit_test_restart_creates_new_file();
+    ok &= unit_test_rotation_on_size();
+    return ok;
 }
 
 bool test_format_string()
