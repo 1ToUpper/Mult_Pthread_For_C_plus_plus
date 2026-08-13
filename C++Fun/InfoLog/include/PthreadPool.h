@@ -8,7 +8,6 @@
 #include <future>
 #include <chrono>
 #include <stdexcept>
-#include "InfoLog.h"
 
 class PthreadPool
 {
@@ -76,6 +75,7 @@ public:
                     (*task)();
                     return res;
             }
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
         tasks_.emplace_back([task]() { (*task)(); });
         lock.unlock();

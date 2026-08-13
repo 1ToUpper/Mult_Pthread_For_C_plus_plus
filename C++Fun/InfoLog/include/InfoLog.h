@@ -28,6 +28,34 @@ enum LogLevel
     WARNING_ = 1,
     ERROR_ = 2
 };
+class MsgLog
+{
+public:
+    static MsgLog* get_instance();
+    ~MsgLog() { };
+    void log(LogLevel lv, const char* fmt, ...);
+private:
+    /*
+    * @name Init_Run()
+    * @note 启动交换数据线程，仅在首次调用对象时调用一次，使用标志位置管理
+    */
+    void Init_Run();
+    void start_write_dumping_logs_pthread();
+    void start_scan_logs_queue_pthread();
+    std::string format_string_impl(LogLevel level, const char* fmt, va_list args);
+    std::string get_curren_time_ms();
+private:
+    static MsgLog* p_instance_;
+    explicit MsgLog():exchange_ready_(false) { };
+public:
+    static PthreadPool s_pth_pools_;
+    static std::atomic<bool> init_flag_;
+private:
+    bool exchange_ready_;
+    std::condition_variable cv_notify_write_file_;
+    std::condition_variable cv_notify_exchange_queue_;
+};
+
 
 inline std::string get_curren_time_ms()
 {
