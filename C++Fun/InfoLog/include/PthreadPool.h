@@ -83,6 +83,34 @@ public:
         return res;
     }
 
+    void log(LOGGER::LogLevel lv, const char* fmt, ...)
+    {
+        std::unique_lock<std::mutex> lock(queue_mtx_);
+        if(stop_)
+        {
+            throw std::runtime_error("logger on stopped ThreadPool");
+        }
+
+        va_list args;
+        va_start(args, fmt);
+        std::string log_msg = LOGGER::format_string_impl(lv, fmt, args);
+        va_end(args);
+
+        while(tasks_.size() >= max_queue_size_ && log_buff_queue_.size() >= max_queue_size_/2)
+        {
+        // RejectPolicy::BLOCK:
+            cv_not_full_.wait(lock);
+            break;
+        }
+        auto log_msg_copy = log_msg;
+        tasks_.emplace_back([log_msg_copy]()
+        {
+            std::lock_guard<std::mutex> log_lock(log_buff_mtx_);
+            log_buff_queue_.emplace_back(log_msg_copy);
+        });
+        lock.unlock();
+        cv_not_empty_.notify_one();
+    }
 private:
     std::vector<std::thread> workers_;
     std::deque<std::function<void()>> tasks_;

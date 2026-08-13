@@ -5,9 +5,10 @@ using namespace std;
 
 int main()
 {
-    //bool ok = test_file_write();
-    // extern bool run_all_fileoperator_unit_tests();
-    // ok &= run_all_fileoperator_unit_tests();
+    bool ok = test_file_write();
+    // also run fileoperator unit tests
+    extern bool run_all_fileoperator_unit_tests();
+    ok &= run_all_fileoperator_unit_tests();
     //test_printf_format_string();
     //test_get_current_time();
     //bool ok = test_format_string();
