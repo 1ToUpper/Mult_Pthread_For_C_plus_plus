@@ -7,6 +7,7 @@
 #include <filesystem>
 #include <vector>
 #include <mutex>
+
 namespace FileOperator
 {
     inline const std::string log_folder_dir = "./log";
@@ -17,4 +18,5 @@ namespace FileOperator
     //2.检索文件
     std::string seek_log_files(const std::string &ready_log_msg);
 }
+
 #endif

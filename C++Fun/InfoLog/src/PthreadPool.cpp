@@ -1,5 +1,4 @@
 #include "../include/PthreadPool.h"
-#include "../include/FileOperator.h"
 
 PthreadPool::PthreadPool(unsigned int size, size_t queue_size, RejectPolicy policy)
 {
