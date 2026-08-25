@@ -1,4 +1,5 @@
 #include "../include/FileOperator.h"
+#include "../include/InfoLog.h"
 #include <algorithm>
 
 static bool gb_first_open = true;
@@ -21,8 +22,18 @@ bool write_file_operation(const std::string &log_text)
     std::ofstream out_file(full_path, std::ios::app);
     if(!out_file.is_open())
     {
-        std::cerr << "文件" + file_dir_name << "不存在" << std::endl;
-        return false;
+        std::string file_dir_name = seek_log_files(log_text);
+        std::string full_path = log_folder_dir + "/" + file_dir_name;
+        std::ofstream out_file(full_path, std::ios::app);
+        if(!out_file.is_open())
+        {
+            std::cerr << "文件" + file_dir_name << "不存在" << std::endl;
+            return false;
+        }
+        out_file << log_text;
+        // metrics: count written messages and bytes
+        LOGGER::metrics_written.fetch_add(1, std::memory_order_relaxed);
+        LOGGER::metrics_bytes_written.fetch_add(log_text.size(), std::memory_order_relaxed);
     }
     out_file << log_text;
     return true;

@@ -1,3 +1,6 @@
+#ifndef PTHREADPOOL_H
+#define PTHREADPOOL_H
+
 #include <iostream>
 #include <condition_variable>
 #include <mutex>
@@ -121,3 +124,5 @@ private:
     size_t max_queue_size_;
     RejectPolicy reject_policy_;
 };
+
+#endif

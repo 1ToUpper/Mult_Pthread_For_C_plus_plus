@@ -86,6 +86,9 @@ void MsgLog::log(LogLevel lv, const char* fmt, ...)
     std::string log_msg = format_string_impl(lv, fmt, args);
     va_end(args);
 
+    // record submission
+    metrics_submitted.fetch_add(1, std::memory_order_relaxed);
+
     s_pth_pools_.submit([log_msg, this]()
     {
         std::lock_guard<std::mutex> log_lock(log_buff_mtx_);
