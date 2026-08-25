@@ -31,12 +31,19 @@ enum LogLevel
     WARNING_ = 1,
     ERROR_ = 2
 };
+// metrics for throughput measurement
+inline std::atomic<uint64_t> metrics_submitted{0};
+inline std::atomic<uint64_t> metrics_written{0};
+inline std::atomic<uint64_t> metrics_bytes_written{0};
+inline std::atomic<uint64_t> metrics_dropped{0};
 class MsgLog
 {
 public:
     static MsgLog* get_instance();
     ~MsgLog() { };
     void log(LogLevel lv, const char* fmt, ...);
+    std::string format_string_impl(LogLevel level, const char* fmt, va_list args);
+    std::string get_curren_time_ms();
 private:
     /*
     * @name Init_Run()
@@ -45,11 +52,10 @@ private:
     void Init_Run();
     void start_write_dumping_logs_pthread();
     void start_scan_logs_queue_pthread();
-    std::string format_string_impl(LogLevel level, const char* fmt, va_list args);
-    std::string get_curren_time_ms();
+    
 private:
     static MsgLog* p_instance_;
-    explicit MsgLog():exchange_ready_(false) { };
+    explicit MsgLog();
 public:
     static PthreadPool s_pth_pools_;
     static std::atomic<bool> init_flag_;

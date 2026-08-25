@@ -9,8 +9,8 @@
 #include <mutex>
 namespace FileOperator
 {
-    const std::string log_folder_dir = "./log";
-    std::mutex g_file_mtx; //文件锁
+    inline const std::string log_folder_dir = "./log";
+    inline std::mutex g_file_mtx; //文件锁
 
     //1.写入文件操作
     bool write_file_operation(const std::string &log_text);

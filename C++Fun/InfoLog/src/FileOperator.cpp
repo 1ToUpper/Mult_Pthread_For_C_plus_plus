@@ -1,4 +1,5 @@
 #include "../include/FileOperator.h"
+#include "../include/InfoLog.h"
 #include <algorithm>
 
 namespace FileOperator
@@ -20,6 +21,9 @@ bool write_file_operation(const std::string &log_text)
             return false;
         }
         out_file << log_text;
+        // metrics: count written messages and bytes
+        LOGGER::metrics_written.fetch_add(1, std::memory_order_relaxed);
+        LOGGER::metrics_bytes_written.fetch_add(log_text.size(), std::memory_order_relaxed);
     }
     return true;
 }
